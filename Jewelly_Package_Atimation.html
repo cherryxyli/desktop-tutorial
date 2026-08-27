@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>珠寶燈具 3D 包裝爆炸圖 (全系列)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
+            background-color: #2c3e50; 
+        }
+        #canvas-container { 
+            width: 100vw; 
+            height: 100vh; 
+            display: block; 
+        }
+        #ui-panel {
+            position: absolute; 
+            top: 20px; 
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px; 
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            width: 320px; 
+            pointer-events: auto;
+            backdrop-filter: blur(10px);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        h2 { 
+            margin-top: 0; 
+            font-size: 1.2rem; 
+            color: #1F4E78; 
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 10px;
+        }
+        
+        select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 1rem;
+            background: #f8f9fa;
+            color: #333;
+            cursor: pointer;
+            outline: none;
+        }
+        select:focus {
+            border-color: #1F4E78;
+        }
+        .desc-box {
+            background: #f0f4f8;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            color: #444;
+            line-height: 1.5;
+            margin-bottom: 15px;
+            border-left: 4px solid #3498db;
+        }
+        .legend-item { 
+            display: flex; 
+            align-items: center; 
+            margin-bottom: 10px; 
+            font-size: 0.85rem;
+            color: #333;
+        }
+        .color-box { 
+            width: 20px; 
+            height: 20px; 
+            margin-right: 12px; 
+            border-radius: 4px; 
+            border: 1px solid rgba(0,0,0,0.1); 
+            flex-shrink: 0;
+        }
+        
+        .btn-group { 
+            display: flex; 
+            gap: 10px; 
+            margin-top: 15px; 
+        }
+        button {
+            flex: 1; 
+            padding: 10px; 
+            border: none; 
+            border-radius: 6px;
+            background: #1F4E78; 
+            color: white; 
+            cursor: pointer;
+            font-weight: bold; 
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px rgba(31, 78, 120, 0.2);
+        }
+        button:hover { background: #2a6a9e; transform: translateY(-2px); }
+        button:active { transform: translateY(0); }
+        
+        #loading {
+            position: absolute; 
+            top: 50%; left: 50%; 
+            transform: translate(-50%, -50%);
+            color: white; 
+            font-size: 1.5rem; 
+            pointer-events: none;
+            font-weight: bold;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            z-index: 1;
+            transition: opacity 0.5s ease;
+        }
+
+        @media (max-width: 600px) {
+            #ui-panel {
+                top: auto; bottom: 20px; left: 10px; right: 10px;
+                width: auto; max-height: 40vh; padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">載入 3D 模型中...</div>
+    <div id="canvas-container"></div>
+    
+    <div id="ui-panel">
+        <h2>📦 珠寶燈具包裝模擬</h2>
+        
+        <label for="type-select" style="font-size: 0.9rem; font-weight: bold; color: #333; margin-bottom: 5px;">選擇燈具包裝類型：</label>
+        <select id="type-select" onchange="changePackagingType(this.value)">
+            <option value="linear">長條型 (Model A, C, N)</option>
+            <option value="ushape">U字型 (Model B)</option>
+            <option value="panel">面板型 (Model E, K)</option>
+            <option value="spotlight">圓柱/射燈型 (Model F2, L, M)</option>
+        </select>
+        
+        <div id="desc-text" class="desc-box">
+            載入中...
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="color-box" style="background-color: rgba(184, 134, 11, 0.3); border: 1px solid #8b6508;"></div>
+                <span>加厚外紙箱 (防壓支撐)</span>
+            </div>
+            <div class="legend-item">
+                <div class="color-box" style="background-color: rgba(255, 255, 255, 0.9);"></div>
+                <span>EPE 珍珠棉/護角 (防震防摔)</span>
+            </div>
+            <div class="legend-item">
+                <div class="color-box" style="background-color: #bdc3c7;"></div>
+                <span>燈具主體 & PE防刮袋</span>
+            </div>
+            <div class="legend-item">
+                <div class="color-box" style="background-color: #3498db;"></div>
+                <span>獨立配件/電源盒</span>
+            </div>
+        </div>
+        
+        <div class="btn-group">
+            <button id="btn-explode" onclick="setViewState('explode')">展開視圖</button>
+            <button id="btn-assemble" onclick="setViewState('assemble')">組合視圖</button>
+        </div>
+    </div>
+
+    <script>
+        let scene, camera, renderer, controls;
+        let parts = []; 
+        let currentType = 'linear';
+
+        const descriptions = {
+            'linear': '<strong>適用: Model A, C, N</strong><br>細長型設計，採用長條形紙箱。重點在於上下 EPE 珍珠棉需緊密包覆中段，防止運輸時的重壓導致燈條折彎或斷裂。',
+            'ushape': '<strong>適用: Model B</strong><br>特殊 U 形結構。必須針對外型客製化切割珍珠棉(開槽)，確保轉角處的受力均勻，並有足夠的空間放置配件盒以避免刮傷。',
+            'panel': '<strong>適用: Model E, K</strong><br>大面積扁平設計。發光面極易受損，四角必須配置 L 型珍珠棉護角，且燈體須完全包覆防靜電膜。遙控器獨立裝盒。',
+            'spotlight': '<strong>適用: Model F2, L, M1, M2</strong><br>立體圓柱或含軌道結構。底座需有較深的凹槽固定燈頭，若是帶軌道的款式(M系列)，燈體與軌道需分層/分格擺放以防金屬互刮。'
+        };
+
+        const materials = {
+            box: new THREE.MeshStandardMaterial({ 
+                color: 0xb8860b, transparent: true, opacity: 0.25, 
+                roughness: 0.9, depthWrite: false, side: THREE.DoubleSide
+            }),
+            boxEdge: new THREE.LineBasicMaterial({ color: 0x8b6508, linewidth: 2 }),
+            foam: new THREE.MeshStandardMaterial({ 
+                color: 0xffffff, transparent: true, opacity: 0.85, roughness: 0.8
+            }),
+            ledBody: new THREE.MeshStandardMaterial({ 
+                color: 0xbdc3c7, metalness: 0.6, roughness: 0.3
+            }),
+            ledBodyDark: new THREE.MeshStandardMaterial({ 
+                color: 0x333333, metalness: 0.8, roughness: 0.2
+            }),
+            ledLight: new THREE.MeshStandardMaterial({ 
+                color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.9
+            }),
+            accessoryBox: new THREE.MeshStandardMaterial({ 
+                color: 0x3498db, roughness: 0.6
+            }),
+            peBag: new THREE.MeshStandardMaterial({
+                color: 0xadd8e6, transparent: true, opacity: 0.3, roughness: 0.2
+            })
+        };
+
+        window.onload = function() {
+            init3D();
+            updateDescription('linear');
+            document.getElementById('loading').style.opacity = 0;
+        };
+
+        function init3D() {
+            const container = document.getElementById('canvas-container');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x2c3e50);
+            
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(25, 20, 30);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxPolarAngle = Math.PI / 2 + 0.1;
+            controls.minDistance = 10;
+            controls.maxDistance = 80;
+
+            scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 25, 15);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 1024;
+            directionalLight.shadow.mapSize.height = 1024;
+            directionalLight.shadow.bias = -0.001;
+            scene.add(directionalLight);
+
+            const fillLight = new THREE.DirectionalLight(0xaaccff, 0.4);
+            fillLight.position.set(-15, 5, -15);
+            scene.add(fillLight);
+
+            window.addEventListener('resize', onWindowResize);
+
+            // Initial build
+            buildLinear();
+            setTimeout(() => setViewState('explode'), 500);
+            animateLoop();
+        }
+
+        function changePackagingType(type) {
+            if (type === currentType) return;
+            currentType = type;
+            updateDescription(type);
+            
+            // Clear current objects
+            parts.forEach(part => {
+                scene.remove(part);
+            });
+            parts = [];
+
+            // Build new objects based on type
+            switch(type) {
+                case 'linear': buildLinear(); break;
+                case 'ushape': buildUShape(); break;
+                case 'panel': buildPanel(); break;
+                case 'spotlight': buildSpotlight(); break;
+            }
+
+            // Animate to explode state for better visibility
+            setViewState('explode');
+        }
+
+        function updateDescription(type) {
+            document.getElementById('desc-text').innerHTML = descriptions[type];
+        }
+
+        function buildLinear() {
+            const bx = 18, by = 4, bz = 6;
+            
+            // Outer Carton
+            const cartonGeo = new THREE.BoxGeometry(bx + 0.4, by + 0.4, bz + 0.4);
+            const carton = new THREE.Mesh(cartonGeo, materials.box);
+            carton.add(new THREE.LineSegments(new THREE.EdgesGeometry(cartonGeo), materials.boxEdge));
+            carton.userData = { targetY: 0, baseY: 0 }; 
+            addPart(carton);
+
+            // Bottom Foam
+            const botFoam = new THREE.Mesh(new THREE.BoxGeometry(bx, 1.2, bz), materials.foam);
+            botFoam.position.y = -1.3;
+            botFoam.receiveShadow = true;
+            botFoam.userData = { targetY: -1.3, explodeY: -6, baseY: -1.3 };
+            addPart(botFoam);
+
+            // Top Foam
+            const topFoam = new THREE.Mesh(new THREE.BoxGeometry(bx, 1.2, bz), materials.foam);
+            topFoam.position.y = 1.3;
+            topFoam.castShadow = true;
+            topFoam.userData = { targetY: 1.3, explodeY: 6, baseY: 1.3 };
+            addPart(topFoam);
+
+            // LED Group
+            const ledGroup = new THREE.Group();
+            ledGroup.add(new THREE.Mesh(new THREE.BoxGeometry(15, 0.4, 0.8), materials.ledBody));
+            
+            const light = new THREE.Mesh(new THREE.BoxGeometry(14.8, 0.1, 0.6), materials.ledLight);
+            light.position.y = 0.25;
+            ledGroup.add(light);
+            
+            ledGroup.add(new THREE.Mesh(new THREE.BoxGeometry(15.2, 0.6, 1.0), materials.peBag));
+            ledGroup.userData = { targetY: 0, explodeY: 0, baseY: 0 };
+            addPart(ledGroup);
+
+            // Accessories
+            const accBox = new THREE.Mesh(new THREE.BoxGeometry(2, 1, 1.5), materials.accessoryBox);
+            accBox.position.set(-6, 0, 1.5);
+            accBox.userData = { targetY: 0, explodeY: -3, baseY: 0, targetZ: 1.5, explodeZ: 4, baseZ: 1.5 };
+            addPart(accBox);
+        }
+
+        function buildUShape() {
+            const bx = 16, by = 4, bz = 10;
+            
+            // Outer Carton
+            const cartonGeo = new THREE.BoxGeometry(bx + 0.4, by + 0.4, bz + 0.4);
+            const carton = new THREE.Mesh(cartonGeo, materials.box);
+            carton.add(new THREE.LineSegments(new THREE.EdgesGeometry(cartonGeo), materials.boxEdge));
+            carton.userData = { targetY: 0, baseY: 0 }; 
+            addPart(carton);
+
+            // Bottom Foam (Wider)
+            const botFoam = new THREE.Mesh(new THREE.BoxGeometry(bx, 1.2, bz), materials.foam);
+            botFoam.position.y = -1.3;
+            botFoam.userData = { targetY: -1.3, explodeY: -7, baseY: -1.3 };
+            addPart(botFoam);
+
+            // Top Foam (Wider)
+            const topFoam = new THREE.Mesh(new THREE.BoxGeometry(bx, 1.2, bz), materials.foam);
+            topFoam.position.y = 1.3;
+            topFoam.userData = { targetY: 1.3, explodeY: 7, baseY: 1.3 };
+            addPart(topFoam);
+
+            // LED U-Shape Group
+            const ledGroup = new THREE.Group();
+            
+            // Main bar
+            const mainBar = new THREE.Mesh(new THREE.BoxGeometry(14, 0.4, 0.8), materials.ledBody);
+            mainBar.position.z = -3;
+            ledGroup.add(mainBar);
+            const mainLight = new THREE.Mesh(new THREE.BoxGeometry(13.8, 0.1, 0.6), materials.ledLight);
+            mainLight.position.set(0, 0.25, -3);
+            ledGroup.add(mainLight);
+
+            // Left Arm
+            const leftArm = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.4, 4), materials.ledBody);
+            leftArm.position.set(-6.6, 0, -1);
+            ledGroup.add(leftArm);
+            const leftLight = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.1, 3.8), materials.ledLight);
+            leftLight.position.set(-6.6, 0.25, -1);
+            ledGroup.add(leftLight);
+
+            // Right Arm
+            const rightArm = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.4, 4), materials.ledBody);
+            rightArm.position.set(6.6, 0, -1);
+            ledGroup.add(rightArm);
+            const rightLight = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.1, 3.8), materials.ledLight);
+            rightLight.position.set(6.6, 0.25, -1);
+            ledGroup.add(rightLight);
+
+            // PE Bag over whole U-Shape (simplified as a bounding box)
+            const peBag = new THREE.Mesh(new THREE.BoxGeometry(14.5, 0.6, 5), materials.peBag);
+            peBag.position.z = -1.5;
+            ledGroup.add(peBag);
+
+            ledGroup.userData = { targetY: 0, explodeY: 0, baseY: 0 };
+            addPart(ledGroup);
+
+            // Accessories in the middle of the U
+            const accBox = new THREE.Mesh(new THREE.BoxGeometry(4, 1, 2), materials.accessoryBox);
+            accBox.position.set(0, 0, 1);
+            accBox.userData = { targetY: 0, explodeY: 3, baseY: 0, targetZ: 1, explodeZ: 5, baseZ: 1 };
+            addPart(accBox);
+        }
+
+        function buildPanel() {
+            const bx = 14, by = 2.5, bz = 10;
+            
+            // Outer Carton
+            const cartonGeo = new THREE.BoxGeometry(bx + 0.4, by + 0.4, bz + 0.4);
+            const carton = new THREE.Mesh(cartonGeo, materials.box);
+            carton.add(new THREE.LineSegments(new THREE.EdgesGeometry(cartonGeo), materials.boxEdge));
+            carton.userData = { targetY: 0, baseY: 0 }; 
+            addPart(carton);
+
+            // Corner Protectors (4 corners instead of full sheets to show variation)
+            const protectorGeo = new THREE.BoxGeometry(2, 2.2, 2);
+            const corners = [
+                {x: -6, z: -4}, {x: 6, z: -4}, {x: -6, z: 4}, {x: 6, z: 4}
+            ];
+            
+            corners.forEach((pos, idx) => {
+                const corner = new THREE.Mesh(protectorGeo, materials.foam);
+                corner.position.set(pos.x, 0, pos.z);
+                // Explode them outwards
+                corner.userData = { 
+                    targetY: 0, explodeY: 0, baseY: 0,
+                    targetX: pos.x, explodeX: pos.x * 1.5, baseX: pos.x,
+                    targetZ: pos.z, explodeZ: pos.z * 1.5, baseZ: pos.z
+                };
+                addPart(corner);
+            });
+
+            // LED Panel
+            const ledGroup = new THREE.Group();
+            ledGroup.add(new THREE.Mesh(new THREE.BoxGeometry(12, 0.4, 8), materials.ledBody));
+            
+            const light = new THREE.Mesh(new THREE.BoxGeometry(11.8, 0.1, 7.8), materials.ledLight);
+            light.position.y = 0.25;
+            ledGroup.add(light);
+            
+            ledGroup.add(new THREE.Mesh(new THREE.BoxGeometry(12.2, 0.6, 8.2), materials.peBag));
+            ledGroup.userData = { targetY: 0, explodeY: 4, baseY: 0 };
+            addPart(ledGroup);
+
+            // Accessories (Remote / Driver) - Placed on top during explosion, beside during assembly
+            const accBox = new THREE.Mesh(new THREE.BoxGeometry(2, 0.8, 4), materials.accessoryBox);
+            accBox.position.set(0, 0, 0);
+            accBox.userData = { targetY: 0, explodeY: 8, baseY: 0 };
+            addPart(accBox);
+        }
+
+        function buildSpotlight() {
+            const bx = 8, by = 8, bz = 8;
+            
+            // Outer Carton (Cubic)
+            const cartonGeo = new THREE.BoxGeometry(bx + 0.4, by + 0.4, bz + 0.4);
+            const carton = new THREE.Mesh(cartonGeo, materials.box);
+            carton.add(new THREE.LineSegments(new THREE.EdgesGeometry(cartonGeo), materials.boxEdge));
+            carton.userData = { targetY: 0, baseY: 0 }; 
+            addPart(carton);
+
+            // Deep Bottom Foam
+            const botFoam = new THREE.Mesh(new THREE.BoxGeometry(bx, 3.5, bz), materials.foam);
+            botFoam.position.y = -2.2;
+            botFoam.userData = { targetY: -2.2, explodeY: -6, baseY: -2.2 };
+            addPart(botFoam);
+
+            // Deep Top Foam
+            const topFoam = new THREE.Mesh(new THREE.BoxGeometry(bx, 3.5, bz), materials.foam);
+            topFoam.position.y = 2.2;
+            topFoam.userData = { targetY: 2.2, explodeY: 7, baseY: 2.2 };
+            addPart(topFoam);
+
+            // Spotlight LED Group
+            const ledGroup = new THREE.Group();
+            
+            // Cylinder Body
+            const cylGeo = new THREE.CylinderGeometry(2, 2, 4, 32);
+            const cyl = new THREE.Mesh(cylGeo, materials.ledBodyDark);
+            cyl.rotation.x = Math.PI / 2; // Point forward
+            ledGroup.add(cyl);
+
+            // Light Emitting Surface
+            const lightGeo = new THREE.CylinderGeometry(1.8, 1.8, 0.1, 32);
+            const light = new THREE.Mesh(lightGeo, materials.ledLight);
+            light.rotation.x = Math.PI / 2;
+            light.position.z = 2.05;
+            ledGroup.add(light);
+
+            // Track Adapter (small box on top)
+            const adapter = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2, 1), materials.ledBodyDark);
+            adapter.position.y = 3;
+            ledGroup.add(adapter);
+            
+            // Hinge
+            const hinge = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 1), materials.ledBodyDark);
+            hinge.rotation.z = Math.PI / 2;
+            hinge.position.y = 2;
+            ledGroup.add(hinge);
+
+            // PE Bag (wrapping it)
+            const peBag = new THREE.Mesh(new THREE.BoxGeometry(5, 7, 5), materials.peBag);
+            peBag.position.y = 1;
+            ledGroup.add(peBag);
+
+            ledGroup.userData = { targetY: 0, explodeY: 0, baseY: 0 };
+            addPart(ledGroup);
+        }
+
+        function addPart(mesh) {
+            scene.add(mesh);
+            parts.push(mesh);
+        }
+
+        function setViewState(state) {
+            parts.forEach(part => {
+                const ud = part.userData;
+                if (state === 'explode') {
+                    ud.targetY = ud.explodeY !== undefined ? ud.explodeY : ud.baseY;
+                    ud.targetX = ud.explodeX !== undefined ? ud.explodeX : (ud.baseX || part.position.x);
+                    ud.targetZ = ud.explodeZ !== undefined ? ud.explodeZ : (ud.baseZ || part.position.z);
+                } else if (state === 'assemble') {
+                    ud.targetY = ud.baseY;
+                    if(ud.baseX !== undefined) ud.targetX = ud.baseX;
+                    if(ud.baseZ !== undefined) ud.targetZ = ud.baseZ;
+                }
+            });
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animateLoop() {
+            requestAnimationFrame(animateLoop);
+            
+            parts.forEach(part => {
+                const ud = part.userData;
+                if (ud.targetY !== undefined) part.position.y += (ud.targetY - part.position.y) * 0.08;
+                if (ud.targetX !== undefined) part.position.x += (ud.targetX - part.position.x) * 0.08;
+                if (ud.targetZ !== undefined) part.position.z += (ud.targetZ - part.position.z) * 0.08;
+            });
+
+            controls.update(); 
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
