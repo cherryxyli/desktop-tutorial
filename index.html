@@ -33,14 +33,41 @@
             display: flex;
             flex-direction: column;
             max-height: 90vh;
-            overflow-y: auto;
         }
-        h2 { 
-            margin-top: 0; 
-            font-size: 1.2rem; 
-            color: #1F4E78; 
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             border-bottom: 2px solid #ecf0f1;
             padding-bottom: 10px;
+            margin-bottom: 10px;
+        }
+        h2 { 
+            margin: 0; 
+            font-size: 1.2rem; 
+            color: #1F4E78; 
+        }
+        #toggle-btn {
+            flex: none;
+            padding: 4px 8px;
+            font-size: 0.8rem;
+            width: auto;
+            margin: 0;
+            background: transparent;
+            color: #1F4E78;
+            border: 1px solid #1F4E78;
+            box-shadow: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #toggle-btn:hover { background: #f0f4f8; transform: none; }
+        #info-content {
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        #info-content.collapsed {
+            display: none;
         }
         
         select {
@@ -119,9 +146,14 @@
 
         @media (max-width: 600px) {
             #ui-panel {
-                top: auto; bottom: 20px; left: 10px; right: 10px;
-                width: auto; max-height: 40vh; padding: 15px;
+                top: 15px; bottom: auto; left: 10px; right: 10px;
+                width: auto; max-height: 85vh; padding: 15px;
             }
+            h2 { font-size: 1.1rem; }
+            .desc-box { font-size: 0.8rem; padding: 10px; margin-bottom: 10px; }
+            .legend-item { margin-bottom: 6px; font-size: 0.75rem; }
+            .color-box { width: 16px; height: 16px; margin-right: 8px; }
+            .btn-group { margin-top: 10px; }
         }
     </style>
 </head>
@@ -130,36 +162,41 @@
     <div id="canvas-container"></div>
     
     <div id="ui-panel">
-        <h2>📦 珠寶燈具包裝模擬</h2>
-        
-        <label for="type-select" style="font-size: 0.9rem; font-weight: bold; color: #333; margin-bottom: 5px;">選擇燈具包裝類型：</label>
-        <select id="type-select" onchange="changePackagingType(this.value)">
-            <option value="linear">長條型 (Model A, C, N)</option>
-            <option value="ushape">U字型 (Model B)</option>
-            <option value="panel">面板型 (Model E, K)</option>
-            <option value="spotlight">圓柱/射燈型 (Model F2, L, M)</option>
-        </select>
-        
-        <div id="desc-text" class="desc-box">
-            載入中...
+        <div class="header-row">
+            <h2>📦 珠寶燈具包裝模擬</h2>
+            <button id="toggle-btn" onclick="toggleInfo()">隱藏說明</button>
         </div>
         
-        <div class="legend">
-            <div class="legend-item">
-                <div class="color-box" style="background-color: rgba(184, 134, 11, 0.3); border: 1px solid #8b6508;"></div>
-                <span>加厚外紙箱 (防壓支撐)</span>
+        <div id="info-content">
+            <label for="type-select" style="font-size: 0.9rem; font-weight: bold; color: #333; margin-bottom: 5px;">選擇燈具包裝類型：</label>
+            <select id="type-select" onchange="changePackagingType(this.value)">
+                <option value="linear">長條型 (Model A, C, N)</option>
+                <option value="ushape">U字型 (Model B)</option>
+                <option value="panel">面板型 (Model E, K)</option>
+                <option value="spotlight">圓柱/射燈型 (Model F2, L, M)</option>
+            </select>
+            
+            <div id="desc-text" class="desc-box">
+                載入中...
             </div>
-            <div class="legend-item">
-                <div class="color-box" style="background-color: rgba(255, 255, 255, 0.9);"></div>
-                <span>EPE 珍珠棉/護角 (防震防摔)</span>
-            </div>
-            <div class="legend-item">
-                <div class="color-box" style="background-color: #bdc3c7;"></div>
-                <span>燈具主體 & PE防刮袋</span>
-            </div>
-            <div class="legend-item">
-                <div class="color-box" style="background-color: #3498db;"></div>
-                <span>獨立配件/電源盒</span>
+            
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="color-box" style="background-color: rgba(184, 134, 11, 0.3); border: 1px solid #8b6508;"></div>
+                    <span>加厚外紙箱 (防壓支撐)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="color-box" style="background-color: rgba(255, 255, 255, 0.9);"></div>
+                    <span>EPE 珍珠棉/護角 (防震防摔)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="color-box" style="background-color: #bdc3c7;"></div>
+                    <span>燈具主體 & PE防刮袋</span>
+                </div>
+                <div class="legend-item">
+                    <div class="color-box" style="background-color: #3498db;"></div>
+                    <span>獨立配件/電源盒</span>
+                </div>
             </div>
         </div>
         
@@ -211,7 +248,24 @@
             init3D();
             updateDescription('linear');
             document.getElementById('loading').style.opacity = 0;
+            
+            // 手機版自動收起說明以確保視線不被擋住
+            if (window.innerWidth <= 600) {
+                toggleInfo();
+            }
         };
+
+        function toggleInfo() {
+            const content = document.getElementById('info-content');
+            const btn = document.getElementById('toggle-btn');
+            if (content.classList.contains('collapsed')) {
+                content.classList.remove('collapsed');
+                btn.innerText = '隱藏說明';
+            } else {
+                content.classList.add('collapsed');
+                btn.innerText = '顯示說明';
+            }
+        }
 
         function init3D() {
             const container = document.getElementById('canvas-container');
@@ -219,7 +273,13 @@
             scene.background = new THREE.Color(0x2c3e50);
             
             camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(25, 20, 30);
+            
+            // 手機版自動把相機拉遠，避免模型超出螢幕或被 UI 蓋住
+            if (window.innerWidth <= 600) {
+                camera.position.set(35, 25, 45);
+            } else {
+                camera.position.set(25, 20, 30);
+            }
 
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -234,6 +294,11 @@
             controls.maxPolarAngle = Math.PI / 2 + 0.1;
             controls.minDistance = 10;
             controls.maxDistance = 80;
+            
+            // 手機版稍微改變中心點，使畫面偏下挪動 (模型會被墊高)
+            if (window.innerWidth <= 600) {
+                controls.target.set(0, -2, 0); 
+            }
 
             scene.add(new THREE.AmbientLight(0xffffff, 0.6));
 
